@@ -1,0 +1,12 @@
+{
+  "name": "gcg-table-local-save",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node local-start.mjs",
+    "test": "node --test test.mjs turns.test.mjs decks.test.mjs local.test.mjs"
+  },
+  "engines": {
+    "node": ">=24 <25"
+  }
+}

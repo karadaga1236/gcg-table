@@ -1,0 +1,10 @@
+# Personal saves and temporary files
+/data/decks/*
+*.bak
+*.tmp
+/work/
+*.zip
+# Distribution-only binaries and official card image cache
+/runtime/node.exe
+/public/cards/*.webp
+node_modules/
