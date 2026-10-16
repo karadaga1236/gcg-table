@@ -22,6 +22,16 @@ test('再配備・山札確認からの配備・トークンにも配備ター�
 test('コマンドのパイロット名・特徴・複数の名前のリンクを照合する',()=>{
  const {r,run}=setup(),c=getCard(r,run,'ST01-013');assert.equal(c.pilotName,'カイ・シデン');const unit={id:'u',link:'「カイ・シデン」'},pilot={...c,attachedTo:'u'};assert.ok(linked(unit,[unit,pilot]));assert.ok(linked({...unit,link:'特徴〔WB隊〕'},[unit,pilot]));assert.ok(linked({...unit,link:'「カイ・シデン」 「アムロ・レイ」'},[unit,pilot]));
 });
+test('トラッシュからの除外を相手に同期し、相手の操作と二重除外を拒否する',()=>{
+ const {r,run}=setup(),c=getCard(r,run,'ST01-001','trash');
+ const before=structuredClone(r);
+ assert.throws(()=>run(1,'move',{from:'trash',id:c.id,to:'removed'}));assert.deepEqual(r,before);
+ run(0,'move',{from:'trash',id:c.id,to:'removed'});
+ assert.equal(r.players[0].trash.some(x=>x.id===c.id),false);
+ assert.equal(view(r,1).players[0].removed.filter(x=>x.id===c.id).length,1);
+ const after=structuredClone(r);
+ assert.throws(()=>run(0,'move',{from:'trash',id:c.id,to:'removed'}));assert.deepEqual(r,after);
+});
 test('ドラッグは自分のカードのみ・相手側と同じ領域への誤移動を拒否する',()=>{
  const {r,run}=setup(),c=getCard(r,run,'ST01-001'),s=view(r,0),source={id:c.id,zone:'hand',player:0};
  const d=dragChoice(s,source,{zone:'battle',player:0});assert.equal(d.type,'move');run(0,d.type,d);assert.equal(r.players[0].battle[0].id,c.id);

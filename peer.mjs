@@ -18,5 +18,5 @@ export async function relay(peer,req,url,body){
   const target=new URL(url.pathname,destination);if(url.pathname==='/api/state'){for(const key of ['code','since'])if(url.searchParams.has(key))target.searchParams.set(key,url.searchParams.get(key))}
   const response=await fetch(target,{method:req.method,headers:{'Content-Type':'application/json',...(req.headers.authorization?{Authorization:req.headers.authorization}:{})},...(req.method==='POST'?{body:JSON.stringify(body)}:{}),redirect:'error',signal:AbortSignal.timeout(8000)});
   return {status:response.status,bytes:response.status===204?Buffer.alloc(0):await bounded(response)};
- }catch(e){if(e.message==='version')throw Error('相手もGCG TABLE 04.7.1を起動してください。接続先が違う可能性もあります。');throw Error('相手のアプリに接続できません。VPN接続・相手の起動状態・接続先を確認してください。')}
+ }catch(e){if(e.message==='version')throw Error('相手もGCG TABLE 04.7.2を起動してください。接続先が違う可能性もあります。');throw Error('相手のアプリに接続できません。VPN接続・相手の起動状態・接続先を確認してください。')}
 }
