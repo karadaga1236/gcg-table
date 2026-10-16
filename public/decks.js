@@ -1,3 +1,4 @@
+import {deckCurve} from './deck-curve.js';
 import {localLibrary} from './local-library.js';
 import {matchesTraits,traitOptions} from './card-traits.js';
 import {library,totals,deckText,textDeck,validateCards,validateDeckParts} from './deck-store.js';
@@ -26,7 +27,17 @@ for(const [id,zone] of [['edit-main','cards'],['edit-side','sideboard']])$('#'+i
 async function save(copy=false){if(!profile){showAddProfile();return false}const name=$('#deck-name').value.trim();deck=await lib.save(profile,{...deck,name,...(copy?{id:null,revision:null}:{})});dirty=false;remember();renderDeck();toast('「'+deck.name+'」を保存しました。');return true}
 function loadDeck(d){deck={...d,cards:d.cards.map(c=>({...byNo.get(c.number),...c})),sideboard:(d.sideboard||[]).map(c=>({...byNo.get(c.number),...c}))};dirty=false;remember();renderDeck();renderResults()}
 function setWorkspace(next){workspace=next;for(const name of ['search','current','saved']){$('#workspace-'+name+'-pane').hidden=name!==next;$('#workspace-'+name).setAttribute('aria-selected',String(name===next))}if(next==='current')renderCurrent();if(next==='saved')renderSaved()}
-function renderCurrent(){const cards=deck[editZone]||[];$('#current-deck-info').textContent=(deck.name||'名前未設定')+' · '+(editZone==='cards'?'メイン':'サイド')+' '+totals(cards).count+'枚';$('#current-deck-grid').innerHTML=cards.map(c=>'<article class="resultcard"><button class="art" data-detail="'+E(c.number)+'" aria-label="'+E(c.name)+'の詳細"><img src="/cards/'+E(c.number)+'.webp" alt="'+E(c.name)+'"><span class="deck-count">×'+c.count+'</span></button><div class="info"><h3>'+E(c.name)+'</h3><div class="number">'+E(c.number)+'</div></div>'+counter(c)+'</article>').join('')||'<p class="empty">カード検索からカードを追加してください。</p>'}
+function renderCurrent(){const cards=deck[editZone]||[];$('#current-deck-info').textContent=(deck.name||'名前未設定')+' · '+(editZone==='cards'?'メイン':'サイド')+' '+totals(cards).count+'枚';renderCurve(cards);$('#current-deck-grid').innerHTML=cards.map(c=>'<article class="resultcard"><button class="art" data-detail="'+E(c.number)+'" aria-label="'+E(c.name)+'の詳細"><img src="/cards/'+E(c.number)+'.webp" alt="'+E(c.name)+'"><span class="deck-count">×'+c.count+'</span></button><div class="info"><h3>'+E(c.name)+'</h3><div class="number">'+E(c.number)+'</div></div>'+counter(c)+'</article>').join('')||'<p class="empty">カード検索からカードを追加してください。</p>'}
+function renderCurve(cards){
+ const curve=deckCurve(cards,byNo),peak=Math.max(1,...curve.bins.map(b=>b.count));
+ $('#curve-summary').textContent=curve.total?'平均COST '+(curve.average===null?'—':curve.average.toFixed(2))+' · '+curve.total+'枚':'カードを追加すると構成が表示されます';
+ $('#curve-bars').innerHTML=curve.bins.map(b=>{
+  const height=b.count/peak*100;
+  return '<li class="curve-column" aria-label="COST '+b.cost+'：'+b.count+'枚"><b>'+b.count+'</b><svg viewBox="0 0 40 110" preserveAspectRatio="none" aria-hidden="true"><rect x="5" y="'+(110-height)+'" width="30" height="'+height+'" rx="3"/></svg><span>'+b.cost+'</span></li>';
+ }).join('');
+ $('#curve-unknown').hidden=!curve.unknown;
+ $('#curve-unknown').textContent='COST不明 '+curve.unknown+'枚（グラフ・平均から除外）';
+}
 function renderSaved(){if(!profile){$('#saved-title').textContent='マイデッキ';$('#saved-decks-grid').innerHTML='<p class="empty">左側でプレイヤーを追加してください。</p>';return}$('#saved-title').textContent=profiles.find(p=>p.id===profile)?.name+'のマイデッキ';$('#saved-decks-grid').innerHTML=lib.decks(profile).map(d=>'<article class="saved-deck-tile"><div class="deck-cover">'+d.cards.slice(0,4).map(c=>'<img src="/cards/'+E(c.number)+'.webp" alt="'+E(c.name)+'">').join('')+'</div><h3>'+E(d.name)+'</h3><p class="muted">メイン '+totals(d.cards).count+'枚 / サイド '+totals(d.sideboard||[]).count+'枚</p><small>'+new Date(d.updated).toLocaleString('ja-JP')+'</small><button data-load="'+E(d.id)+'" class="primary full">このデッキを開く</button></article>').join('')||'<p class="empty">保存したデッキはまだありません。</p>'}
 function showSaved(){if(!profile){showAddProfile();return}setWorkspace('saved')}
 for(const name of ['search','current','saved'])$('#workspace-'+name).onclick=()=>setWorkspace(name);

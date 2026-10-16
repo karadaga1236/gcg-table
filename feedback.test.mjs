@@ -18,6 +18,19 @@ test('デュナメスとロックオン（ニール）、連名・複数候補�
  assert.equal(linked({...u,link:'特徴〔ジオン〕 「ロックオン・ストラトス」'},[u,p]),true);
  assert.equal(linked({...u,link:'「ロックオン・ストラトス」以外'},[u,p]),false);
 });
+test('別名としても扱うパイロットは元の名前・別名の両方でリンクし、無関係な効果名は使わない',()=>{
+ for(const [number,alias] of [['ST12-012','マリーダ・クルス'],['GD02-098','シャア・アズナブル'],['ST12-011','ゼクス・マーキス']]){
+  const pilot={...catalog.find(c=>c.number===number),attachedTo:'unit'};
+  const printed=catalog.find(c=>c.type==='ユニット'&&c.link==='「'+alias+'」');
+  assert.ok(printed,alias);
+  const u={...printed,id:'unit',deployedTurn:1};
+  assert.equal(linked(u,[u,pilot]),true,number);assert.equal(deployment(u,[u,pilot],1),'LINK');
+  assert.equal(linked({...u,link:'「'+pilot.name+'」'},[u,pilot]),true);
+  assert.equal(linked({...u,link:'「アムロ・レイ」'},[u,pilot]),false);
+  assert.equal(linked(u,[u,{...pilot,effect:'【リンク時】「'+alias+'」を手札に加える。'}]),false);
+  assert.equal(linked(u,[u,{...pilot,effect:'【リンク中】このカードのカード名は「'+alias+'」としても扱う。'}]),false);
+ }
+});
 test('両者が同じデッキで再戦すると部屋・席・構成を保ち、得点と盤面を初期化する',()=>{
  const {r,run}=setup(),code=r.code,tokens=r.players.map(p=>p.token),lists=r.players.map(p=>p.registeredDeck.map(c=>c.number));run(0,'concede');run(0,'rematch',{choice:'same'});assert.equal(r.stage,'ended');run(1,'rematch',{choice:'same'});assert.equal(r.stage,'lobby');assert.equal(r.code,code);assert.deepEqual(r.players.map(p=>p.token),tokens);assert.deepEqual(r.score,[0,0]);assert.equal(r.matchWinner,null);assert.equal(r.firstSelected,null);assert.deepEqual(r.dice.rolls,[null,null]);assert.ok(r.players.every(p=>p.deckLoaded&&p.battle.length===0&&p.hand.length===0));assert.deepEqual(r.players.map(p=>p.registeredDeck.map(c=>c.number)),lists);
  r.dice={rolls:[1,6],winner:1,round:1};run(1,'chooseFirst',{first:1});run(0,'start');run(1,'keep');run(0,'keep');assert.equal(r.stage,'play');assert.equal(r.players[1].hand.length,6);
