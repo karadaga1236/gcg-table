@@ -9,6 +9,7 @@ export function bindMatch(action,getState){
  $('#side-ready').onclick=()=>action('sideReady',{ready:!getState().players[getState().me].sideReady});
  $('#start-next').onclick=()=>action('startNext');
  $('#sideboard-panel').addEventListener('click',e=>{const b=e.target.closest('[data-swap]');if(b)action('sideSwap',{from:b.dataset.from,number:b.dataset.swap})});
+ $('#claim-victory').onclick=()=>{$('#dialogbody').innerHTML='<h2>直接攻撃による勝利を確定しますか？</h2><p>この攻撃が通り、相手の敗北条件を満たしたことを双方で確認してください。ブロックや防御効果、攻撃禁止などの判定は手動です。</p><div class="row"><button id="confirm-victory" class="primary">確認済み・勝利を確定</button><button id="cancel-victory">対戦に戻る</button></div>';$('#dialog').showModal();$('#cancel-victory').onclick=()=>$('#dialog').close();$('#confirm-victory').onclick=async()=>{if(await action('claimVictory'))$('#dialog').close()}};
  const confirmLoss=()=>{$('#dialogbody').innerHTML='<h2>このゲームの敗北を確定しますか？</h2><p class="fine">相手の勝ちとして記録します。BO3では次のゲームへ進めます。</p><div class="row"><button id="confirm-loss" class="danger">敗北を確定する</button><button id="cancel-loss">対戦に戻る</button></div>';$('#dialog').showModal();$('#cancel-loss').onclick=()=>$('#dialog').close();$('#confirm-loss').onclick=async()=>{if(await action('concede'))$('#dialog').close()}};$('#declare-loss').onclick=confirmLoss;$('#concede').onclick=confirmLoss;
 }
 export function renderMatch(s){
@@ -23,7 +24,7 @@ export function renderMatch(s){
  $('#next-game').hidden=s.me!==0||s.matchWinner!==null;
  $('#result-wait').textContent=s.matchWinner===null&&s.me!==0?'ホストが次のゲームの準備を始めるまでお待ちください。':'';
  $('#rematch-options').hidden=s.matchWinner===null;$('#rematch-status').textContent=s.stage==='ended'&&s.matchWinner!==null?s.players.map(p=>p.name+'：'+(p.rematchReady==='same'?'同じデッキで準備完了':p.rematchReady==='change'?'選び直して再戦':'選択待ち')).join(' / '):'';
- $('#declare-loss').hidden=s.stage!=='play';
+ $('#declare-loss').hidden=s.stage!=='play';$('#claim-victory').hidden=!s.canClaimVictory;
  $('#sideboard-panel').hidden=!waiting;
  if(waiting){
   $('#side-status').textContent=s.players.map(p=>`${p.name}：${p.sideReady?'確定済み':'入れ替え中'}`).join(' / ');

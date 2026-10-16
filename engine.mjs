@@ -1,3 +1,4 @@
+import {canClaimVictory} from './victory.mjs';
 import {handleTools,guardDeck,privateTools,readyCard,expireTurn} from './table-tools.mjs';
 import { randomBytes, randomInt } from 'node:crypto';
 import {readFileSync} from 'node:fs';
@@ -39,11 +40,13 @@ function nextPhase(r){r.phase++;if(r.phase===1)draw(r,r.turn);if(r.phase===2)res
 function beginTurn(r){const p=r.players[r.turn];r.phase=0;for(const z of ['battle','base','resources'])p[z].forEach(c=>{if(!readyCard(c))log(r,`${p.name}：${c.name}はレストを維持`)});log(r,`${p.name}：ターン開始・アクティブ化を処理`);if(!p.stepMode){while(r.phase<3&&r.stage==='play')nextPhase(r)}else log(r,'開始時の効果を処理してから次へ進んでください')}
 export function join(r,name){check(r.players.length===1,'このルームは満員です。');check(r.stage==='lobby','この対戦は開始済みです。');r.players.push(player(name));log(r,'対戦相手が参加しました。');r.revision++}
 export function seat(r,token){let i=r.players.findIndex(p=>p.token===token);check(i!==-1,'参加情報が無効です。ルームに入り直してください。');return i}
-export function view(r,i){return {reveals:structuredClone(r.reveals||[]),bestOf:r.bestOf,score:[...r.score],game:r.game,matchWinner:r.matchWinner,firstChooser:r.game===1?r.dice.winner:r.lastLoser,firstSelected:r.firstSelected,code:r.code,solo:!!r.localOnly,stage:r.stage,dice:structuredClone(r.dice),winner:r.winner,first:r.first,turn:r.turn,round:r.round,phase:r.phase,revision:r.revision,me:i,log:r.log,players:r.players.map((p,j)=>({...privateTools(p,j===i,r.revision),name:p.name,rematchReady:p.rematchReady,sideReady:p.sideReady,sideboard:j===i?structuredClone(p.sideboard):p.sideboard.length,registeredDeck:j===i&&['lobby','sideboard','ended'].includes(r.stage)?structuredClone(p.registeredDeck):p.registeredDeck.length,ready:p.ready,mulligan:p.mulligan,deckLoaded:p.deckLoaded,stepMode:p.stepMode,...Object.fromEntries(zones.map(z=>[z,z==='deck'||z==='resourceDeck'||(z==='hand'&&j!==i)?p[z].length:p[z].map(c=>z==='shields'?{id:c.id,hidden:true}:structuredClone(c))]))}))}}
+export function view(r,i){return {canClaimVictory:canClaimVictory(r,i),reveals:structuredClone(r.reveals||[]),bestOf:r.bestOf,score:[...r.score],game:r.game,matchWinner:r.matchWinner,firstChooser:r.game===1?r.dice.winner:r.lastLoser,firstSelected:r.firstSelected,code:r.code,solo:!!r.localOnly,stage:r.stage,dice:structuredClone(r.dice),winner:r.winner,first:r.first,turn:r.turn,round:r.round,phase:r.phase,revision:r.revision,me:i,log:r.log,players:r.players.map((p,j)=>({...privateTools(p,j===i,r.revision),name:p.name,rematchReady:p.rematchReady,sideReady:p.sideReady,sideboard:j===i?structuredClone(p.sideboard):p.sideboard.length,registeredDeck:j===i&&['lobby','sideboard','ended'].includes(r.stage)?structuredClone(p.registeredDeck):p.registeredDeck.length,ready:p.ready,mulligan:p.mulligan,deckLoaded:p.deckLoaded,stepMode:p.stepMode,...Object.fromEntries(zones.map(z=>[z,z==='deck'||z==='resourceDeck'||(z==='hand'&&j!==i)?p[z].length:p[z].map(c=>z==='shields'?{id:c.id,hidden:true}:structuredClone(c))]))}))}}
 export function act(r,i,a){
  check(a&&typeof a.type==='string','操作が不正です。');check(a.revision===r.revision,'盤面が更新されました。内容を確認してもう一度操作してください。');
  const p=r.players[i];const say=t=>log(r,`${p.name}：${t}`);
- if(a.type==='load'){
+ if(a.type==='hideRoom'){
+  check(i===0&&r.stage==='lobby','待機中の部屋の作成者だけが一覧から取り下げられます。');r.listed=false;
+ }else if(a.type==='load'){
   check(r.stage==='lobby','開始後はデッキを変更できません。');const d=parseDeck(a.deck),side=parseDeck(a.sideboard||'',{side:true});validatePair(d,side);p.deck=d;p.registeredDeck=structuredClone(d);p.sideboard=side;p.deckLoaded=true;say('メイン50枚・サイドボード'+side.length+'枚を登録');
   }else if(a.type==='rematch'){
   check(r.stage==='ended'&&r.matchWinner!==null&&['same','change'].includes(a.choice),'対戦終了後に再戦方法を選んでください。');
@@ -102,6 +105,7 @@ export function act(r,i,a){
    for(let n=0;n<a.count;n++){const c=card(data.name,'ユニット',data.number,data.note);c.token=true;c.rest=a.rest;c.deployedTurn=r.round;p.battle.push(c)}say(data.name+'のトークンを'+a.count+'枚配置');
   }
   else if(a.type==='token'){check(typeof a.name==='string'&&a.name.trim()&&a.name.length<=80,'トークン名を入力してください。');check(['battle','base','resources'].includes(a.to),'配置先が不正です。');check(p[a.to].length<30,'この領域のカード数が多すぎます。');let c=card(a.name,a.to==='resources'?'リソース':a.to==='base'?'ベース':'ユニット');c.token=true;c.number=c.name==='EXリソース'?'EXR-001':c.name==='EXベース'?'EXBP-001':'';if(a.to==='battle'&&c.type==='ユニット')c.deployedTurn=r.round;p[a.to].push(c);say(`${c.name}を配置`);}
+  else if(a.type==='claimVictory'){check(canClaimVictory(r,i),'自分のメインフェイズで、相手のシールド・ベースがなく、攻撃可能なユニットがいる場合に使えます。');finishGame(r,i,p.name+'：直接攻撃による勝利を双方で確認しました');}
   else if(a.type==='concede'){finishGame(r,1-i,p.name+'：敗北を確定しました');}
   else if(a.type==='search'){say('効果のため山札の内容を確認（順序は表示しません）');}
   else{
