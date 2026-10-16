@@ -3,7 +3,7 @@
 2026年10月15日から、開発用のgcg-table-v4.1フォルダーをローカルGitで管理しています。
 Gitは変更の履歴を残し、差分を確認したり、以前の状態を取り出したりするための仕組みです。
 
-- mainブランチに、変更前の04版と今回の04.1版を記録しています。
+- mainブランチに、04版からの更新を記録しています。
 - 今後の開発もこのリポジトリーを継続して使用します。配布ZIPは別に作成します。
 - 公開先は https://github.com/karadaga1236/gcg-table です。ソースコードはGitHub、利用者向けZIPはReleasesで配布します。
 - 保存デッキ（data/decks）、その控え、作業用ファイル、ZIPは履歴に含めません。
@@ -14,6 +14,6 @@ Gitは変更の履歴を残し、差分を確認したり、以前の状態を�
 
 Gitのソースだけでは同梱実行環境と画像が不足します。同じ版の配布ZIPからruntime/node.exeとpublic/cardsをコピーしてください。実行環境のライセンスはruntime/LICENSE.txtにあります。保存デッキは必要な本人の分だけ、別途data/decksへ引き継いでください。
 
-開発確認はruntime/node.exeで、test.mjs・turns.test.mjs・decks.test.mjs・local.test.mjs・lobby.test.mjsをNode.jsの--testオプションに指定します。package.jsonにも同じテスト対象を記載しています。外部ライブラリーのインストールは不要です。
+開発確認はruntime/node.exeで、test.mjs・turns.test.mjs・decks.test.mjs・local.test.mjs・lobby.test.mjs・match.test.mjsをNode.jsの--testオプションに指定します。package.jsonにも同じテスト対象を記載しています。外部ライブラリーのインストールは不要です。
 
 GitはPC故障へのバックアップにはなりません。ソースのリポジトリーと個人のdataフォルダーは、必要に応じて別の保存先にも控えを残してください。

@@ -6,7 +6,7 @@
  <div class="flex"><button id="new">＋ 新規</button><button id="my-decks">マイデッキ <span id="saved-count">0</span></button></div>
  <label for="deck-name">デッキ名</label><input id="deck-name" maxlength="60" placeholder="デッキ名を入力">
  <div class="flex"><button id="save" class="primary">保存する</button><button id="save-copy">別名で保存</button></div><p id="save-state" class="muted">新しいデッキ</p>
- <div class="summary"><div id="colors">使用カラー 0 / 2</div><div id="types"></div></div>
+ <div class="deck-tabs" aria-label="編集するデッキ"><button id="edit-main" class="active" aria-pressed="true">メイン <span id="main-count">0</span> / 50</button><button id="edit-side" aria-pressed="false">サイド <span id="side-count">0</span> / 10</button></div><p id="edit-hint" class="muted">検索結果の＋はメインに追加します。</p><div class="summary"><div id="colors">使用カラー 0 / 2</div><div id="types"></div></div>
  <div id="deck-cards" class="decklist"><div class="empty">右のカードから<br>「＋」でデッキに追加</div></div>
  <div class="deckfooter"><p id="validation" class="muted">50枚そろえると対戦に使えます。</p><button id="use" class="primary full" disabled>このデッキで対戦準備へ →</button><details><summary>読み込み・控えを保存</summary><button id="sample">ST01サンプルを読み込む</button><button id="paste">デッキリストを貼り付け</button><button id="export">このプレイヤーのデッキを書き出す</button><label class="file-label" for="import">控えファイルを読み込む</label><input type="file" id="import" accept=".json,application/json"><p class="muted">デッキはこのPCに保存されます。別のPCへの移動や控えの作成には書き出しを使えます。読込は新しいプレイヤーに追加します。</p><p id="save-folder" class="muted save-folder"></p></details></div>
 </aside><section class="searchpanel">

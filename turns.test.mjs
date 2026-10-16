@@ -4,7 +4,7 @@ import {room,join,act,view} from './engine.mjs';
 import {readFile} from 'node:fs/promises';
 import {createServer} from './server.mjs';
 const deck=await readFile(new URL('./public/sample-deck.txt',import.meta.url),'utf8');
-function setup(step=false){const r=room('先攻');join(r,'後攻');const run=(i,type,a={})=>act(r,i,{type,revision:r.revision,...a});run(0,'load',{deck});run(1,'load',{deck});r.dice={rolls:[6,1],winner:0,round:1};if(step)run(0,'stepMode',{enabled:true});run(0,'start');run(0,'keep');run(1,'keep');return {r,run}}
+function setup(step=false){const r=room('先攻');join(r,'後攻');const run=(i,type,a={})=>act(r,i,{type,revision:r.revision,...a});run(0,'load',{deck});run(1,'load',{deck});r.dice={rolls:[6,1],winner:0,round:1};run(0,'chooseFirst',{first:0});if(step)run(0,'stepMode',{enabled:true});run(0,'start');run(0,'keep');run(1,'keep');return {r,run}}
 test('自動開始：先攻もドローし、次の自分のターンだけレストを解除する',()=>{
  const {r,run}=setup();assert.equal(r.phase,3);assert.equal(r.players[0].hand.length,6);assert.equal(r.players[0].resources.length,1);assert.equal(r.players[1].hand.length,5);
  const resource=r.players[0].resources[0];run(0,'rest',{from:'resources',id:resource.id});assert.equal(resource.rest,true);const revision=r.revision;

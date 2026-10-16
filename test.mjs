@@ -5,7 +5,7 @@ import {createServer} from './server.mjs';
 import {getCardImage,validNumber} from './card-images.mjs';
 import {readFile} from 'node:fs/promises';
 const deck=Array.from({length:13},(_,i)=>`${i===12?2:4} | TEST-${i} | Secret card ${i} | ${i<8?'ユニット':'パイロット'}`).join('\n');
-function ready(){const r=room('Alice');join(r,'Bob');const run=(i,type,a={})=>act(r,i,{type,revision:r.revision,...a});run(0,'load',{deck});run(1,'load',{deck});r.dice={rolls:[6,1],winner:0,round:1};run(0,'start');return {r,run}}
+function ready(){const r=room('Alice');join(r,'Bob');const run=(i,type,a={})=>act(r,i,{type,revision:r.revision,...a});run(0,'load',{deck});run(1,'load',{deck});r.dice={rolls:[6,1],winner:0,round:1};run(0,'chooseFirst',{first:0});run(0,'start');return {r,run}}
 test('実カード16種のローカル画像と50枚サンプルを読み込める',async()=>{
  const catalog=JSON.parse(await readFile(new URL('./public/catalog.json',import.meta.url),'utf8'));assert.ok(catalog.cards.length>=16);
  for(const c of catalog.cards.filter(c=>c.number.startsWith('ST01-'))){assert.ok(validNumber(c.number));const bytes=await getCardImage(c.number,new URL('./public/cards/',import.meta.url));assert.equal(bytes.toString('ascii',8,12),'WEBP')}

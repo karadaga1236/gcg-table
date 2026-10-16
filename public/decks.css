@@ -5,3 +5,5 @@ header{position:sticky;top:0;z-index:3}.deckpanel{top:66px;height:calc(100vh - 6
 .trait-filter{display:flex;align-items:end;gap:16px;margin-top:6px}.trait-filter label{flex:0 1 300px;margin-bottom:0}.trait-filter select{margin-top:5px;padding:8px}.trait-filter p{margin:0 0 8px}.trait-text{font-size:11px;color:#a7c7aa;margin-top:5px;min-height:17px;white-space:normal}@media(max-width:700px){.trait-filter{display:block}.trait-filter p{margin-top:8px}}
 
 .save-folder{overflow-wrap:anywhere}#migrate{margin-bottom:10px}
+
+.deck-tabs{display:flex;gap:6px;margin-top:5px}.deck-tabs button{flex:1;font-size:12px;padding:8px 4px}.deck-tabs .active{border-color:var(--blue);background:#244760}.deckrow .counter{gap:3px}.deckrow .counter button{padding:4px 5px;font-size:11px}.deckrow .counter [data-transfer]{color:#b4d6a2;font-size:10px}#edit-hint{margin:6px 0 10px}

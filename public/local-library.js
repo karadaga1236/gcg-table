@@ -15,6 +15,6 @@ export async function localLibrary(){
   save:(profile,deck)=>request('save',{profile,deck}),
   importProfile:data=>request('importProfile',{data}),
   migrate:(data,key)=>request('migrate',{data,key}),
-  exportProfile(profile){const p=state.profiles.find(p=>p.id===profile);if(!p)throw Error('プレイヤーを選んでください。');return {format:'gcg-table-decks',version:1,player:p.name,decks:state.decks.filter(d=>d.profile===profile).map(d=>({name:d.name,cards:d.cards}))}}
+  exportProfile(profile){const p=state.profiles.find(p=>p.id===profile);if(!p)throw Error('プレイヤーを選んでください。');return {format:'gcg-table-decks',version:2,player:p.name,decks:state.decks.filter(d=>d.profile===profile).map(d=>({name:d.name,cards:d.cards,sideboard:d.sideboard||[]}))}}
  };
 }

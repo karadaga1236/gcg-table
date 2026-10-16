@@ -1,7 +1,7 @@
 import {readFile,readdir,mkdir,writeFile,rename,copyFile} from 'node:fs/promises';
 import path from 'node:path';
 import {randomUUID} from 'node:crypto';
-import {library,PREFIX,validateCards} from './public/deck-store.js';
+import {library,PREFIX,validateDeckParts} from './public/deck-store.js';
 const validId=s=>typeof s==='string'&&/^[a-f0-9]{32}$/.test(s);
 function memory(){const m=new Map();return {get length(){return m.size},key:i=>[...m.keys()][i],getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,v)}}
 export function diskLibrary(directory){
@@ -12,7 +12,7 @@ export function diskLibrary(directory){
    try{const raw=JSON.parse(await readFile(path.join(directory,file),'utf8')),p=raw.profile;
     if(raw.version!==1||!p||!validId(p.id)||file!==p.id+'.json'||typeof p.name!=='string'||!Number.isFinite(p.created)||!Array.isArray(raw.decks))throw Error('Invalid player');
     storage.setItem(PREFIX+'profile:'+p.id,JSON.stringify(p));
-    for(const d of raw.decks){if(!validId(d.id)||d.profile!==p.id||!Number.isInteger(d.revision)||d.revision<1||!Number.isFinite(d.updated)||typeof d.name!=='string'||storage.getItem(PREFIX+'deck:'+d.id))throw Error('Invalid deck');validateCards(d.cards);storage.setItem(PREFIX+'deck:'+d.id,JSON.stringify(d))}
+    for(const d of raw.decks){if(!validId(d.id)||d.profile!==p.id||!Number.isInteger(d.revision)||d.revision<1||!Number.isFinite(d.updated)||typeof d.name!=='string'||storage.getItem(PREFIX+'deck:'+d.id))throw Error('Invalid deck');validateDeckParts(d.cards,d.sideboard||[]);storage.setItem(PREFIX+'deck:'+d.id,JSON.stringify(d))}
     if(raw.importKey)imports.set(p.id,raw.importKey);
    }catch(e){throw Error('保存ファイルを読めません：'+file+'。元のファイルを保管し、.bakの控えから復元してください。')}
   }
