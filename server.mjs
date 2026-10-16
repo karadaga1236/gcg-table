@@ -21,7 +21,7 @@ export function createServer({rooms=new Map(),dataDirectory=new URL('./data/deck
    if(req.headers.origin&&new URL(req.headers.origin).host!==req.headers.host)return send(403,{error:'この接続元からは操作できません。'});
    if(req.headers['sec-fetch-site']==='cross-site')return send(403,{error:'別のサイトからの操作はできません。'});
    res.setHeader('X-Robots-Tag','noindex, nofollow');
-   if(url.pathname==='/peer-info'&&req.method==='GET')return send(200,{app:'GCG TABLE',protocol:6});
+   if(url.pathname==='/peer-info'&&req.method==='GET')return send(200,{app:'GCG TABLE',protocol:7});
    if(url.pathname==='/api/local/connections'&&req.method==='GET'){
     if(!local)return send(403,{error:'自分のPCから操作してください。'});
     return send(200,{interfaces:network?.list()||[]});
@@ -70,8 +70,8 @@ export function createServer({rooms=new Map(),dataDirectory=new URL('./data/deck
     if(url.pathname==='/api/action'&&req.method==='POST'){const state=act(r,i,a);return send(200,{state,...a.type==='search'?{cards:[...r.players[i].deck].sort((a,b)=>a.name.localeCompare(b.name))}:{}})}
     return send(404,{error:'操作が見つかりません。'});
    }
-   if(!local){res.writeHead(403,{'Content-Type':'text/plain; charset=utf-8'});return res.end('GCG TABLE 04.3：自分のPCで「起動.cmd」を実行し、「部屋に入る」にホストからの招待情報を貼り付けてください。')}
-   const files={'/table-tools.js':'table-tools.js','/card-stats.js':'card-stats.js','/match-ui.js':'match-ui.js','/invitation.js':'invitation.js','/local-library.js':'local-library.js','/card-traits.js':'card-traits.js','/decks':'decks.html','/decks.js':'decks.js','/deck-store.js':'deck-store.js','/decks.css':'decks.css','/':'index.html','/app.js':'app.js','/style.css':'style.css','/catalog.json':'catalog.json','/sample-deck.txt':'sample-deck.txt','/card-back.svg':'card-back.svg','/resource-back.svg':'resource-back.svg'};const file=files[url.pathname];if(!file){res.writeHead(404);return res.end('Not found')}
+   if(!local){res.writeHead(403,{'Content-Type':'text/plain; charset=utf-8'});return res.end('GCG TABLE 04.4：自分のPCで「起動.cmd」を実行し、「部屋に入る」にホストからの招待情報を貼り付けてください。')}
+   const files={'/unit-state.js':'unit-state.js','/table-interaction.js':'table-interaction.js','/table-tools.js':'table-tools.js','/card-stats.js':'card-stats.js','/match-ui.js':'match-ui.js','/invitation.js':'invitation.js','/local-library.js':'local-library.js','/card-traits.js':'card-traits.js','/decks':'decks.html','/decks.js':'decks.js','/deck-store.js':'deck-store.js','/decks.css':'decks.css','/':'index.html','/app.js':'app.js','/style.css':'style.css','/catalog.json':'catalog.json','/sample-deck.txt':'sample-deck.txt','/card-back.svg':'card-back.svg','/resource-back.svg':'resource-back.svg'};const file=files[url.pathname];if(!file){res.writeHead(404);return res.end('Not found')}
    const data=await readFile(path.join(root,file));res.writeHead(200,{'Content-Type':file.endsWith('.svg')?'image/svg+xml':file.endsWith('.js')?'text/javascript; charset=utf-8':file.endsWith('.css')?'text/css; charset=utf-8':file.endsWith('.json')?'application/json; charset=utf-8':file.endsWith('.txt')?'text/plain; charset=utf-8':'text/html; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'self'; base-uri 'none'"});res.end(data);
   }catch(e){send(400,{error:e instanceof SyntaxError?'入力を読み取れませんでした。':e.message})}
  });

@@ -8,7 +8,7 @@ export const zones=['hand','battle','base','shields','trash','removed','resolvin
 export const labels={hand:'手札',battle:'バトル',base:'ベース',shields:'シールド',trash:'トラッシュ',removed:'除外',resolving:'効果処理中',resources:'リソース',deck:'山札',resourceDeck:'リソースデッキ'};
 const id=()=>randomBytes(18).toString('hex');
 const check=(ok,message)=>{if(!ok)throw Error(message)};
-const card=(name,type='ユニット',number='',note='')=>({id:id(),name,type,number,note,ap:printed(number,'ap'),hp:printed(number,'hp'),rest:false,damage:0,attachedTo:null});
+const card=(name,type='ユニット',number='',note='')=>({id:id(),name,type,number,note,link:catalog.get(number)?.link||'',traits:catalog.get(number)?.traits||'',pilotName:catalog.get(number)?.effect?.match(/【パイロット】「([^」]+)」/)?.[1]||'',ap:printed(number,'ap'),hp:printed(number,'hp'),rest:false,damage:0,attachedTo:null});
 function shuffle(a){for(let i=a.length-1;i>0;i--){let j=randomInt(i+1);[a[i],a[j]]=[a[j],a[i]]}a.forEach(c=>c.id=id())}
 export function parseDeck(text,{side=false}={}){
  check(typeof text==='string'&&text.length<=20000,'デッキ入力が長すぎます。');
@@ -85,7 +85,11 @@ export function act(r,i,a){
   else if(a.type==='shuffle'){shuffle(p.deck);say('山札をシャッフル');}
   else if(a.type==='refresh'){for(const z of ['battle','base','resources'])p[z].forEach(c=>c.rest=false);say('自分の場をすべてアクティブに');}
   else if(a.type==='phase'){check(r.turn===i,'ターン中のプレイヤーが進行してください。');if(r.phase===4){check(p.hand.length<=10,'手札が10枚になるまでトラッシュへ捨ててください。');expireTurn(r);r.turn=1-r.turn;r.round++;beginTurn(r)}else{nextPhase(r);if(r.phase===4)say('エンドフェイズ。終了時の効果と手札上限10枚を確認してください。')}}
-  else if(a.type==='token'){check(typeof a.name==='string'&&a.name.trim()&&a.name.length<=80,'トークン名を入力してください。');check(['battle','base','resources'].includes(a.to),'配置先が不正です。');check(p[a.to].length<30,'この領域のカード数が多すぎます。');let c=card(a.name,a.to==='resources'?'リソース':a.to==='base'?'ベース':'ユニット');c.token=true;c.number=c.name==='EXリソース'?'EXR-001':c.name==='EXベース'?'EXBP-001':'';p[a.to].push(c);say(`${c.name}を配置`);}
+  else if(a.type==='addEX'){
+   check(Number.isInteger(a.count)&&a.count>=1&&a.count<=10&&typeof a.rest==='boolean','枚数は1〜10、配置状態を選んでください。');check(p.resources.length+a.count<=30,'リソースの配置上限を超えています。');
+   for(let n=0;n<a.count;n++){const c=card('EXリソース','リソース','EXR-001');c.token=true;c.rest=a.rest;p.resources.push(c)}say('効果でEXリソースを'+a.count+'枚'+(a.rest?'レスト':'アクティブ')+'で配置');
+  }
+  else if(a.type==='token'){check(typeof a.name==='string'&&a.name.trim()&&a.name.length<=80,'トークン名を入力してください。');check(['battle','base','resources'].includes(a.to),'配置先が不正です。');check(p[a.to].length<30,'この領域のカード数が多すぎます。');let c=card(a.name,a.to==='resources'?'リソース':a.to==='base'?'ベース':'ユニット');c.token=true;c.number=c.name==='EXリソース'?'EXR-001':c.name==='EXベース'?'EXBP-001':'';if(a.to==='battle'&&c.type==='ユニット')c.deployedTurn=r.round;p[a.to].push(c);say(`${c.name}を配置`);}
   else if(a.type==='concede'){finishGame(r,1-i,p.name+'：敗北を確定しました');}
   else if(a.type==='search'){say('効果のため山札の内容を確認（順序は表示しません）');}
   else{
@@ -96,9 +100,12 @@ export function act(r,i,a){
     const hidden=['hand','deck','shields','resourceDeck'].includes(a.from);const destHidden=['hand','deck','shields','resourceDeck'].includes(a.to);
     // Cards leaving a unit become separate; attached pilots go to trash when the unit leaves battle.
     if(a.from==='battle'&&a.to!=='battle'){let pilots=p.battle.filter(x=>x.attachedTo===c.id);p.battle=p.battle.filter(x=>x.attachedTo!==c.id);for(const x of pilots){x.attachedTo=null;x.rest=false;x.damage=0;delete x.modifier;delete x.skipRefresh;p.trash.push(x)}idx=p.battle.findIndex(x=>x.id===c.id)}
-    p[a.from].splice(idx,1);c.attachedTo=null;c.rest=false;c.damage=0;delete c.modifier;delete c.skipRefresh;
+    p[a.from].splice(idx,1);c.attachedTo=null;c.rest=false;c.damage=0;delete c.modifier;delete c.skipRefresh;delete c.deployedTurn;delete c.attackReady;if(a.to==='battle'&&c.type==='ユニット')c.deployedTurn=r.round;
     if(destHidden)c.id=id();if(a.to==='deck'&&a.position!=='bottom')p.deck.unshift(c);else p[a.to].push(c);
     say(`${hidden&&destHidden?'カード1枚':c.name}：${labels[a.from]} → ${labels[a.to]}`);
+    }else if(a.type==='attackReady'){
+    check(a.from==='battle'&&c.type==='ユニット'&&[true,false,null].includes(a.ready),'自分のユニットと表示状態を選んでください。');
+    c.attackReady=a.ready;say(c.name+'の配備ターン表示を'+(a.ready===null?'自動':a.ready?'攻撃可':'召喚酔い')+'に設定');
    }else if(a.type==='rest'||a.type==='damage'){
     check(['battle','base','resources'].includes(a.from),'場のカードを選んでください。');
     if(a.type==='rest'){c.rest=!c.rest;say(`${c.name}を${c.rest?'レスト':'アクティブ'}に`)}else{check(a.delta===1||a.delta===-1,'ダメージ指定が不正です。');c.damage=Math.max(0,Math.min(99,c.damage+a.delta));say(`${c.name}のダメージ：${c.damage}`)}

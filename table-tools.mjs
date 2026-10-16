@@ -37,7 +37,7 @@ export function handleTools(r,i,a){
   const tail=p.deck.slice(top.length);if(a.reveal)announce(r,i,selected);
   if(a.remainder==='randomBottom')remaining=mixed(remaining);
   p.deck=a.remainder==='top'?[...remaining,...tail]:[...tail,...remaining];
-  for(const c of selected){c.attachedTo=null;c.rest=false;c.damage=0;delete c.modifier;delete c.skipRefresh;if(a.to==='hand')c.id=uid();p[a.to].push(c)}
+  for(const c of selected){c.attachedTo=null;c.rest=false;c.damage=0;delete c.modifier;delete c.skipRefresh;delete c.deployedTurn;delete c.attackReady;if(a.to==='battle'&&c.type==='ユニット')c.deployedTurn=r.round;if(a.to==='hand')c.id=uid();p[a.to].push(c)}
   p.peek=null;say(r,i,`確認した${top.length}枚から${selected.length}枚を${{hand:'手札',resolving:'効果処理中',trash:'トラッシュ',removed:'除外',battle:'バトル',base:'ベース'}[a.to]}へ${a.reveal?'（選択カードを公開）':''}。残りは${{top:'上',bottom:'指定順で下',randomBottom:'無作為に下'}[a.remainder]}へ`);return true;
  }
  if(a.type==='revealCards'){check(['hand','battle','base','trash','removed','resolving'].includes(a.from),'公開できる領域を選んでください。');const cards=idsFrom(p[a.from],a.ids);check(cards.length,'公開するカードを選んでください。');announce(r,i,cards);say(r,i,`${cards.length}枚を公開`);return true}
