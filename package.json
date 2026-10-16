@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "start": "node local-start.mjs",
-    "test": "node --test test.mjs turns.test.mjs decks.test.mjs local.test.mjs lobby.test.mjs match.test.mjs tools.test.mjs interaction.test.mjs"
+    "test": "node --test test.mjs turns.test.mjs decks.test.mjs local.test.mjs lobby.test.mjs match.test.mjs tools.test.mjs interaction.test.mjs feedback.test.mjs"
   },
   "engines": {
     "node": ">=24 <25"

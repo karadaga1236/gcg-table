@@ -19,8 +19,8 @@ test('再配備・山札確認からの配備・トークンにも配備ター�
  const {r,run}=setup(),u=getCard(r,run,'ST01-001','battle');run(0,'attackReady',{from:'battle',id:u.id,ready:true});run(0,'move',{from:'battle',id:u.id,to:'hand'});assert.equal(u.deployedTurn,undefined);assert.equal(u.attackReady,undefined);run(0,'move',{from:'hand',id:u.id,to:'battle'});assert.equal(deployment(u,r.players[0].battle,r.round),'召喚酔い');run(0,'token',{name:'確認用ユニット',to:'battle'});assert.equal(deployment(r.players[0].battle.at(-1),r.players[0].battle,r.round),'召喚酔い');
  const c=r.players[0].deck.find(c=>c.type==='ユニット');r.players[0].deck=[c,...r.players[0].deck.filter(x=>x!==c)];run(0,'peek',{count:1});run(0,'finishPeek',{ids:[c.id],to:'battle',reveal:true,remainder:'top'});assert.equal(deployment(c,r.players[0].battle,r.round),'召喚酔い');
 });
-test('コマンドのパイロット名・特徴リンクを照合し複雑な条件は自動成立にしない',()=>{
- const {r,run}=setup(),c=getCard(r,run,'ST01-013');assert.equal(c.pilotName,'カイ・シデン');const unit={id:'u',link:'「カイ・シデン」'},pilot={...c,attachedTo:'u'};assert.ok(linked(unit,[unit,pilot]));assert.ok(linked({...unit,link:'特徴〔WB隊〕'},[unit,pilot]));assert.ok(!linked({...unit,link:'「カイ・シデン」 「アムロ・レイ」'},[unit,pilot]));
+test('コマンドのパイロット名・特徴・複数の名前のリンクを照合する',()=>{
+ const {r,run}=setup(),c=getCard(r,run,'ST01-013');assert.equal(c.pilotName,'カイ・シデン');const unit={id:'u',link:'「カイ・シデン」'},pilot={...c,attachedTo:'u'};assert.ok(linked(unit,[unit,pilot]));assert.ok(linked({...unit,link:'特徴〔WB隊〕'},[unit,pilot]));assert.ok(linked({...unit,link:'「カイ・シデン」 「アムロ・レイ」'},[unit,pilot]));
 });
 test('ドラッグは自分のカードのみ・相手側と同じ領域への誤移動を拒否する',()=>{
  const {r,run}=setup(),c=getCard(r,run,'ST01-001'),s=view(r,0),source={id:c.id,zone:'hand',player:0};

@@ -12,7 +12,7 @@ export function guardDeck(r,i,a){
  check(!['draw','shuffle','search','peek'].includes(a.type)&&!(['move','batchMove'].includes(a.type)&&(a.from==='deck'||a.to==='deck')),'上から見たカードを確定するか、確認を取り消してください。');
 }
 export function readyCard(c){if(c.skipRefresh){c.skipRefresh=false;return false}c.rest=false;return true}
-export function expireTurn(r){for(const p of r.players)for(const z of ['battle','base','resources'])for(const c of p[z])if(c.modifier?.duration==='turn')delete c.modifier}
+export function expireTurn(r){for(const p of r.players)for(const z of ['battle','base','resources'])for(const c of p[z]){if(c.modifier?.duration==='turn')delete c.modifier;if(c.effects)c.effects=c.effects.filter(e=>e.duration!=='turn')}}
 export function handleTools(r,i,a){
  const p=r.players[i];
  if(a.type==='pay'){
@@ -37,10 +37,18 @@ export function handleTools(r,i,a){
   const tail=p.deck.slice(top.length);if(a.reveal)announce(r,i,selected);
   if(a.remainder==='randomBottom')remaining=mixed(remaining);
   p.deck=a.remainder==='top'?[...remaining,...tail]:[...tail,...remaining];
-  for(const c of selected){c.attachedTo=null;c.rest=false;c.damage=0;delete c.modifier;delete c.skipRefresh;delete c.deployedTurn;delete c.attackReady;if(a.to==='battle'&&c.type==='ユニット')c.deployedTurn=r.round;if(a.to==='hand')c.id=uid();p[a.to].push(c)}
+  for(const c of selected){c.attachedTo=null;c.rest=false;c.damage=0;delete c.modifier;delete c.skipRefresh;delete c.effects;delete c.deployedTurn;delete c.attackReady;if(a.to==='battle'&&c.type==='ユニット')c.deployedTurn=r.round;if(a.to==='hand')c.id=uid();p[a.to].push(c)}
   p.peek=null;say(r,i,`確認した${top.length}枚から${selected.length}枚を${{hand:'手札',resolving:'効果処理中',trash:'トラッシュ',removed:'除外',battle:'バトル',base:'ベース'}[a.to]}へ${a.reveal?'（選択カードを公開）':''}。残りは${{top:'上',bottom:'指定順で下',randomBottom:'無作為に下'}[a.remainder]}へ`);return true;
  }
  if(a.type==='revealCards'){check(['hand','battle','base','trash','removed','resolving'].includes(a.from),'公開できる領域を選んでください。');const cards=idsFrom(p[a.from],a.ids);check(cards.length,'公開するカードを選んでください。');announce(r,i,cards);say(r,i,`${cards.length}枚を公開`);return true}
+ if(a.type==='bulkModifier'){
+  const cards=idsFrom(p.battle,a.ids);check(cards.length&&cards.every(c=>c.type==='ユニット'&&!c.attachedTo),'自分のユニットを選んでください。');
+  check([a.ap,a.hp].every(n=>Number.isInteger(n)&&Math.abs(n)<=99)&&typeof a.note==='string'&&a.note.length<=140&&['turn','manual'].includes(a.duration),'補正・メモ・期限の指定が不正です。');check(cards.every(c=>(c.effects||[]).length<30),'追加できる効果数を超えています。');
+  const effect={id:uid(),ap:a.ap,hp:a.hp,note:a.note,duration:a.duration};for(const c of cards)(c.effects||=[]).push({...effect});say(r,i,cards.length+'体へ一括補正（AP '+a.ap+' / HP '+a.hp+'）');return true;
+ }
+ if(a.type==='clearBulkModifier'){
+  check(typeof a.id==='string'&&p.battle.some(c=>c.effects?.some(e=>e.id===a.id)),'解除する自分の効果を選んでください。');for(const c of p.battle)if(c.effects)c.effects=c.effects.filter(e=>e.id!==a.id);say(r,i,'選択した一括補正を解除');return true;
+ }
  if(a.type==='modifier'){
   check(['battle','base','resources'].includes(a.from),'場のカードを選んでください。');const c=p[a.from].find(c=>c.id===a.id);check(c,'自分のカードを選んでください。');
   check([a.ap,a.hp].every(n=>Number.isInteger(n)&&Math.abs(n)<=99),'AP・HP補正は−99〜99で指定してください。');check(typeof a.note==='string'&&a.note.length<=140,'効果メモは140文字までです。');check(['manual','turn'].includes(a.duration)&&typeof a.skipRefresh==='boolean','期限・アクティブ化の指定が不正です。');

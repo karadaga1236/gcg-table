@@ -1,14 +1,15 @@
 import {handleTools,guardDeck,privateTools,readyCard,expireTurn} from './table-tools.mjs';
 import { randomBytes, randomInt } from 'node:crypto';
 import {readFileSync} from 'node:fs';
-const catalog=new Map(JSON.parse(readFileSync(new URL('./public/catalog.json',import.meta.url),'utf8')).cards.map(c=>[c.number,c]));
+const tokenCatalog=JSON.parse(readFileSync(new URL('./public/tokens.json',import.meta.url),'utf8')).cards;
+const catalog=new Map([...JSON.parse(readFileSync(new URL('./public/catalog.json',import.meta.url),'utf8')).cards,...tokenCatalog].map(c=>[c.number,c]));
 const catalogColors=new Map([...catalog].map(([n,c])=>[n,c.color]));
 const printed=(number,key)=>{const value=catalog.get(number)?.[key];return /^[+-]?\d+$/.test(value||'')?Number(value):number==='EXBP-001'&&key==='hp'?3:null};
 export const zones=['hand','battle','base','shields','trash','removed','resolving','resources','deck','resourceDeck'];
 export const labels={hand:'手札',battle:'バトル',base:'ベース',shields:'シールド',trash:'トラッシュ',removed:'除外',resolving:'効果処理中',resources:'リソース',deck:'山札',resourceDeck:'リソースデッキ'};
 const id=()=>randomBytes(18).toString('hex');
 const check=(ok,message)=>{if(!ok)throw Error(message)};
-const card=(name,type='ユニット',number='',note='')=>({id:id(),name,type,number,note,link:catalog.get(number)?.link||'',traits:catalog.get(number)?.traits||'',pilotName:catalog.get(number)?.effect?.match(/【パイロット】「([^」]+)」/)?.[1]||'',ap:printed(number,'ap'),hp:printed(number,'hp'),rest:false,damage:0,attachedTo:null});
+const card=(name,type='ユニット',number='',note='')=>({id:id(),name,type,number,note,level:catalog.get(number)?.token?0:printed(number,'level'),effect:catalog.get(number)?.effect||'',link:catalog.get(number)?.link||'',traits:catalog.get(number)?.traits||'',pilotName:catalog.get(number)?.effect?.match(/【パイロット】「([^」]+)」/)?.[1]||'',ap:printed(number,'ap'),hp:printed(number,'hp'),rest:false,damage:0,attachedTo:null});
 function shuffle(a){for(let i=a.length-1;i>0;i--){let j=randomInt(i+1);[a[i],a[j]]=[a[j],a[i]]}a.forEach(c=>c.id=id())}
 export function parseDeck(text,{side=false}={}){
  check(typeof text==='string'&&text.length<=20000,'デッキ入力が長すぎます。');
@@ -23,7 +24,7 @@ export function parseDeck(text,{side=false}={}){
  }
  check(side?[0,10].includes(result.length):result.length===50,side?'サイドボードは使わない場合0枚、使う場合は10枚ちょうどです。':'デッキは合計50枚で登録してください。');return result;
 }
-export function player(name){check(typeof name==='string'&&name.trim().length>=1&&name.length<=24,'名前を1〜24文字で入力してください。');return {name:name.trim(),token:id(),ready:false,mulligan:false,deckLoaded:false,stepMode:false,registeredDeck:[],sideboard:[],sideReady:false,peek:null,paymentUndo:null,...Object.fromEntries(zones.map(z=>[z,[]]))}}
+export function player(name){check(typeof name==='string'&&name.trim().length>=1&&name.length<=24,'名前を1〜24文字で入力してください。');return {name:name.trim(),token:id(),ready:false,mulligan:false,deckLoaded:false,stepMode:false,registeredDeck:[],sideboard:[],sideReady:false,rematchReady:null,peek:null,paymentUndo:null,...Object.fromEntries(zones.map(z=>[z,[]]))}}
 export function room(name,bestOf=1){check([1,3].includes(bestOf),'対戦形式はBO1かBO3を選んでください。');return {bestOf,score:[0,0],game:1,matchWinner:null,lastLoser:null,firstSelected:null,code:randomBytes(6).toString('hex').toUpperCase(),players:[player(name)],stage:'lobby',dice:{rolls:[null,null],winner:null,round:1},first:0,turn:0,round:1,phase:0,revision:0,reveals:[],log:[],updated:Date.now()}}
 function log(r,text){r.log.unshift(text);r.log=r.log.slice(0,100)}
 function validatePair(main,side){
@@ -38,12 +39,19 @@ function nextPhase(r){r.phase++;if(r.phase===1)draw(r,r.turn);if(r.phase===2)res
 function beginTurn(r){const p=r.players[r.turn];r.phase=0;for(const z of ['battle','base','resources'])p[z].forEach(c=>{if(!readyCard(c))log(r,`${p.name}：${c.name}はレストを維持`)});log(r,`${p.name}：ターン開始・アクティブ化を処理`);if(!p.stepMode){while(r.phase<3&&r.stage==='play')nextPhase(r)}else log(r,'開始時の効果を処理してから次へ進んでください')}
 export function join(r,name){check(r.players.length===1,'このルームは満員です。');check(r.stage==='lobby','この対戦は開始済みです。');r.players.push(player(name));log(r,'対戦相手が参加しました。');r.revision++}
 export function seat(r,token){let i=r.players.findIndex(p=>p.token===token);check(i!==-1,'参加情報が無効です。ルームに入り直してください。');return i}
-export function view(r,i){return {reveals:structuredClone(r.reveals||[]),bestOf:r.bestOf,score:[...r.score],game:r.game,matchWinner:r.matchWinner,firstChooser:r.game===1?r.dice.winner:r.lastLoser,firstSelected:r.firstSelected,code:r.code,solo:!!r.localOnly,stage:r.stage,dice:structuredClone(r.dice),winner:r.winner,first:r.first,turn:r.turn,round:r.round,phase:r.phase,revision:r.revision,me:i,log:r.log,players:r.players.map((p,j)=>({...privateTools(p,j===i,r.revision),name:p.name,sideReady:p.sideReady,sideboard:j===i?structuredClone(p.sideboard):p.sideboard.length,registeredDeck:j===i&&['lobby','sideboard','ended'].includes(r.stage)?structuredClone(p.registeredDeck):p.registeredDeck.length,ready:p.ready,mulligan:p.mulligan,deckLoaded:p.deckLoaded,stepMode:p.stepMode,...Object.fromEntries(zones.map(z=>[z,z==='deck'||z==='resourceDeck'||(z==='hand'&&j!==i)?p[z].length:p[z].map(c=>z==='shields'?{id:c.id,hidden:true}:structuredClone(c))]))}))}}
+export function view(r,i){return {reveals:structuredClone(r.reveals||[]),bestOf:r.bestOf,score:[...r.score],game:r.game,matchWinner:r.matchWinner,firstChooser:r.game===1?r.dice.winner:r.lastLoser,firstSelected:r.firstSelected,code:r.code,solo:!!r.localOnly,stage:r.stage,dice:structuredClone(r.dice),winner:r.winner,first:r.first,turn:r.turn,round:r.round,phase:r.phase,revision:r.revision,me:i,log:r.log,players:r.players.map((p,j)=>({...privateTools(p,j===i,r.revision),name:p.name,rematchReady:p.rematchReady,sideReady:p.sideReady,sideboard:j===i?structuredClone(p.sideboard):p.sideboard.length,registeredDeck:j===i&&['lobby','sideboard','ended'].includes(r.stage)?structuredClone(p.registeredDeck):p.registeredDeck.length,ready:p.ready,mulligan:p.mulligan,deckLoaded:p.deckLoaded,stepMode:p.stepMode,...Object.fromEntries(zones.map(z=>[z,z==='deck'||z==='resourceDeck'||(z==='hand'&&j!==i)?p[z].length:p[z].map(c=>z==='shields'?{id:c.id,hidden:true}:structuredClone(c))]))}))}}
 export function act(r,i,a){
  check(a&&typeof a.type==='string','操作が不正です。');check(a.revision===r.revision,'盤面が更新されました。内容を確認してもう一度操作してください。');
  const p=r.players[i];const say=t=>log(r,`${p.name}：${t}`);
  if(a.type==='load'){
   check(r.stage==='lobby','開始後はデッキを変更できません。');const d=parseDeck(a.deck),side=parseDeck(a.sideboard||'',{side:true});validatePair(d,side);p.deck=d;p.registeredDeck=structuredClone(d);p.sideboard=side;p.deckLoaded=true;say('メイン50枚・サイドボード'+side.length+'枚を登録');
+  }else if(a.type==='rematch'){
+  check(r.stage==='ended'&&r.matchWinner!==null&&['same','change'].includes(a.choice),'対戦終了後に再戦方法を選んでください。');
+  if(a.choice==='same')validatePair(p.registeredDeck,p.sideboard);p.rematchReady=a.choice;say(a.choice==='same'?'同じデッキで再戦を希望':'デッキを選び直して再戦を希望');
+  if(r.players.length===2&&r.players.every(q=>q.rematchReady)){
+   for(const q of r.players){const same=q.rematchReady==='same';for(const z of zones)q[z]=[];q.ready=false;q.mulligan=false;q.peek=null;q.paymentUndo=null;q.sideReady=false;q.deckLoaded=same;q.rematchReady=null;if(same)q.deck=structuredClone(q.registeredDeck)}
+   r.score=[0,0];r.game=1;r.matchWinner=null;r.winner=undefined;r.lastLoser=null;r.firstSelected=null;r.dice={rolls:[null,null],winner:null,round:1};r.first=0;r.turn=0;r.round=1;r.phase=0;r.reveals=[];r.stage='lobby';log(r,'同じ部屋で新しい対戦を準備。デッキを確認し、ダイスを振ってください');
+  }
  }else if(a.type==='nextGame'){
   check(i===0&&r.stage==='ended'&&r.bestOf===3&&r.matchWinner===null,'次のゲームを準備できません。');r.game++;r.stage='sideboard';r.firstSelected=null;for(const q of r.players)q.sideReady=false;log(r,'ゲーム'+r.game+'の準備：サイドボードを入れ替えて確定してください');
  }else if(a.type==='sideSwap'){
@@ -89,6 +97,10 @@ export function act(r,i,a){
    check(Number.isInteger(a.count)&&a.count>=1&&a.count<=10&&typeof a.rest==='boolean','枚数は1〜10、配置状態を選んでください。');check(p.resources.length+a.count<=30,'リソースの配置上限を超えています。');
    for(let n=0;n<a.count;n++){const c=card('EXリソース','リソース','EXR-001');c.token=true;c.rest=a.rest;p.resources.push(c)}say('効果でEXリソースを'+a.count+'枚'+(a.rest?'レスト':'アクティブ')+'で配置');
   }
+  else if(a.type==='createToken'){
+   const data=tokenCatalog.find(c=>c.number===a.number);check(data&&Number.isInteger(a.count)&&a.count>=1&&a.count<=10&&typeof a.rest==='boolean','トークンと枚数・向きを選んでください。');check(p.battle.length+a.count<=30,'この領域のカード数が多すぎます。');
+   for(let n=0;n<a.count;n++){const c=card(data.name,'ユニット',data.number,data.note);c.token=true;c.rest=a.rest;c.deployedTurn=r.round;p.battle.push(c)}say(data.name+'のトークンを'+a.count+'枚配置');
+  }
   else if(a.type==='token'){check(typeof a.name==='string'&&a.name.trim()&&a.name.length<=80,'トークン名を入力してください。');check(['battle','base','resources'].includes(a.to),'配置先が不正です。');check(p[a.to].length<30,'この領域のカード数が多すぎます。');let c=card(a.name,a.to==='resources'?'リソース':a.to==='base'?'ベース':'ユニット');c.token=true;c.number=c.name==='EXリソース'?'EXR-001':c.name==='EXベース'?'EXBP-001':'';if(a.to==='battle'&&c.type==='ユニット')c.deployedTurn=r.round;p[a.to].push(c);say(`${c.name}を配置`);}
   else if(a.type==='concede'){finishGame(r,1-i,p.name+'：敗北を確定しました');}
   else if(a.type==='search'){say('効果のため山札の内容を確認（順序は表示しません）');}
@@ -99,8 +111,8 @@ export function act(r,i,a){
     check(!c.token||['battle','base','resources','removed'].includes(a.to),'トークンは場か除外へ移動してください。');
     const hidden=['hand','deck','shields','resourceDeck'].includes(a.from);const destHidden=['hand','deck','shields','resourceDeck'].includes(a.to);
     // Cards leaving a unit become separate; attached pilots go to trash when the unit leaves battle.
-    if(a.from==='battle'&&a.to!=='battle'){let pilots=p.battle.filter(x=>x.attachedTo===c.id);p.battle=p.battle.filter(x=>x.attachedTo!==c.id);for(const x of pilots){x.attachedTo=null;x.rest=false;x.damage=0;delete x.modifier;delete x.skipRefresh;p.trash.push(x)}idx=p.battle.findIndex(x=>x.id===c.id)}
-    p[a.from].splice(idx,1);c.attachedTo=null;c.rest=false;c.damage=0;delete c.modifier;delete c.skipRefresh;delete c.deployedTurn;delete c.attackReady;if(a.to==='battle'&&c.type==='ユニット')c.deployedTurn=r.round;
+    if(a.from==='battle'&&a.to!=='battle'){let pilots=p.battle.filter(x=>x.attachedTo===c.id);p.battle=p.battle.filter(x=>x.attachedTo!==c.id);for(const x of pilots){x.attachedTo=null;x.rest=false;x.damage=0;delete x.modifier;delete x.skipRefresh;delete x.effects;p.trash.push(x)}idx=p.battle.findIndex(x=>x.id===c.id)}
+    p[a.from].splice(idx,1);c.attachedTo=null;c.rest=false;c.damage=0;delete c.modifier;delete c.skipRefresh;delete c.effects;delete c.deployedTurn;delete c.attackReady;if(a.to==='battle'&&c.type==='ユニット')c.deployedTurn=r.round;
     if(destHidden)c.id=id();if(a.to==='deck'&&a.position!=='bottom')p.deck.unshift(c);else p[a.to].push(c);
     say(`${hidden&&destHidden?'カード1枚':c.name}：${labels[a.from]} → ${labels[a.to]}`);
     }else if(a.type==='attackReady'){

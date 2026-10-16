@@ -4,6 +4,7 @@ function sideCards(cards,from,locked){return group(cards).map(c=>`<article class
 export function bindMatch(action,getState){
  $('#choose-first').onclick=()=>action('chooseFirst',{first:getState().me});
  $('#choose-second').onclick=()=>action('chooseFirst',{first:1-getState().me});
+ $('#rematch-same').onclick=()=>action('rematch',{choice:'same'});$('#rematch-change').onclick=()=>action('rematch',{choice:'change'});
  $('#next-game').onclick=()=>action('nextGame');
  $('#side-ready').onclick=()=>action('sideReady',{ready:!getState().players[getState().me].sideReady});
  $('#start-next').onclick=()=>action('startNext');
@@ -21,6 +22,7 @@ export function renderMatch(s){
  $('#result-text').textContent=s.stage==='ended'?`ゲーム${s.game}：${s.players[s.winner]?.name}の勝利。`+(s.matchWinner!==null?`対戦終了 — ${s.players[s.matchWinner]?.name}が${s.score[s.matchWinner]}勝。`:'続けてサイドボードを入れ替えられます。'):'';
  $('#next-game').hidden=s.me!==0||s.matchWinner!==null;
  $('#result-wait').textContent=s.matchWinner===null&&s.me!==0?'ホストが次のゲームの準備を始めるまでお待ちください。':'';
+ $('#rematch-options').hidden=s.matchWinner===null;$('#rematch-status').textContent=s.stage==='ended'&&s.matchWinner!==null?s.players.map(p=>p.name+'：'+(p.rematchReady==='same'?'同じデッキで準備完了':p.rematchReady==='change'?'選び直して再戦':'選択待ち')).join(' / '):'';
  $('#declare-loss').hidden=s.stage!=='play';
  $('#sideboard-panel').hidden=!waiting;
  if(waiting){
