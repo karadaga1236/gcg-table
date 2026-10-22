@@ -57,3 +57,39 @@ body[data-stage="play"] .workspace{min-height:565px}
 [data-card]{touch-action:none;user-select:none}.dragging{cursor:grabbing!important;user-select:none}.dragging [data-card]{pointer-events:auto}.drag-ghost{position:fixed!important;pointer-events:none!important;width:70px;height:98px;padding:0;border:2px solid #a3efdb;border-radius:6px;background:#102032;z-index:9999;transform:rotate(-5deg);opacity:.88}.drag-ghost img{width:100%;height:100%;object-fit:contain}.drag-ghost strong,.drag-ghost .image-missing{display:none}.drag-over{outline:3px solid #8ce5cb!important;outline-offset:-3px;background-color:#4cad9244!important}.zone-battle .cards>.card-slot:nth-child(n+7){min-height:90px}
 
 .trash-entry{display:flex;flex-direction:column;gap:8px;align-items:center;min-width:0}.trash-entry>span{font-size:11px;line-height:1.4;text-align:center;overflow-wrap:anywhere}.trash-remove{width:100%;font-size:12px;border-color:#8da9c2;background:#213b50}.trash-remove:hover{background:#36536c}
+/* Four-player tables keep each player's cards separate and shared zones together. */
+body[data-format="team"] .workspace{height:calc(100dvh - 150px);min-height:530px;align-items:stretch}
+body[data-format="team"] .workspace>aside:first-child{max-height:100%}
+body[data-format="team"] #boards{display:flex;flex-direction:column;gap:12px;overflow-y:auto;flex:1;scrollbar-width:thin}
+body[data-format="team"] .team-table{flex-shrink:0}
+body[data-format="team"] .handtray{height:118px;--card-h:84px;--card-w:60px}
+body[data-format="team"] .hand-label small{font-size:8px}
+.team-table{border:1px solid #496176;border-radius:8px;overflow:hidden;background:#111d29}
+.team-table.allied-team{border-color:#609d91}
+.team-navigation{display:flex;gap:6px;align-items:center;margin:0 0 6px}.team-navigation button{font-size:10px;padding:5px 9px}.team-navigation small{margin-left:auto;font-size:9px}
+body[data-format="team"] .inspector .quick-actions{display:grid;grid-template-columns:1fr 1fr}.team-inspect-art{display:block}
+.team-heading{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:#1c2a38;gap:10px}
+.team-heading h2{font-size:13px}.team-heading>span{font-size:11px;color:#a7dbc9}
+.enemy-team .team-heading{background:#2b2939}.enemy-team .team-heading>span{color:#c8b9dc}
+.shared-area{display:flex;align-items:center;gap:20px;padding:7px 12px;border-bottom:1px solid #34495f;min-height:92px}
+.shared-base,.shared-shields{display:flex;gap:12px;align-items:center;font-size:11px;flex-shrink:0}
+.shared-base .card-slot{--card-h:70px;--card-w:50px;width:78px;height:76px}
+.shared-shields .shield-cards{padding:0;min-height:70px}.shared-shields .card{--card-h:64px;--card-w:46px;margin-left:-25px}.shared-shields .card:first-child{margin-left:0;border-color:#97e2c9}
+.shared-controls{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.shared-controls button{font-size:10px;padding:6px}.shared-controls small{flex-basis:100%;font-size:9px}
+.team-players{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:6px}
+body[data-format="team"] .board{height:auto;min-height:245px;padding:5px;flex-direction:column;--card-h:82px;--card-w:58.6px}
+body[data-format="team"] .boardhead{min-height:26px;gap:5px;flex-wrap:wrap}.board.ally{border-color:#659e8e;background:#193532}
+body[data-format="team"] .zones,body[data-format="team"] .opponent .zones{grid-template-columns:minmax(0,1fr) 55px;grid-template-rows:120px 78px;gap:4px}
+body[data-format="team"] .zone-battle,body[data-format="team"] .opponent .zone-battle{grid-column:1;grid-row:1}
+body[data-format="team"] .zone-resources,body[data-format="team"] .opponent .zone-resources{grid-column:1;grid-row:2;flex-direction:row}
+body[data-format="team"] .zone-deck,body[data-format="team"] .opponent .zone-deck{grid-column:2;grid-row:1}
+body[data-format="team"] .zone-trash,body[data-format="team"] .opponent .zone-trash{grid-column:2;grid-row:2}
+body[data-format="team"] .zone-battle .cards{display:flex;justify-content:flex-start;overflow-x:auto;overflow-y:hidden;padding:20px 4px 12px}
+body[data-format="team"] .zone-battle .card-slot{--card-h:72px;--card-w:51.5px;flex:0 0 82px;width:82px;min-width:82px;height:78px}
+body[data-format="team"] .opponent .card{transform:none}body[data-format="team"] .opponent .card.rest{transform:rotate(90deg)}
+body[data-format="team"] .resource-pile{width:40px;min-width:40px}body[data-format="team"] .resource-pile img{height:28px}
+body[data-format="team"] .zone-resources .card-slot{--card-h:48px;--card-w:34.3px;width:49px}
+body[data-format="team"] .opponent-hand .hand-fan{display:none}
+.ally-hand{margin:3px 0 0;border:0}.ally-hand summary{padding:5px;color:#a9e5d6}.ally-hand .handcards{height:105px;justify-content:flex-start;overflow-x:auto}.ally-hand .card-slot{min-width:64px;width:64px}
+#team-lobby{max-width:1100px;margin:12px auto}.team-roster{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}.team-roster>div{display:flex;flex-direction:column;gap:6px;border:1px solid #4b6571;padding:10px;border-radius:6px}.team-roster strong{font-size:11px;color:#97d9c8}.team-roster span{font-size:13px}.team-deck-issues{color:#ffd39a;margin-top:12px;font-size:12px;line-height:1.8}.seat-controls label{flex:1;min-width:180px}.team-inspect-art{width:100%;max-width:220px;margin:10px 0}.replacement-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin:16px 0}.replacement-grid label{position:relative;display:flex;flex-direction:column;gap:5px;padding:6px;border:1px solid #4b6571;border-radius:6px}.replacement-grid input{width:auto;position:absolute;top:8px;left:8px;transform:scale(1.4)}.replacement-grid img{width:100%;max-height:180px;object-fit:contain}.replacement-grid span{font-size:11px}
+@media(max-width:1100px){.shared-area{gap:10px;flex-wrap:wrap}.shared-controls{flex-basis:100%}.team-roster{grid-template-columns:1fr 1fr}body[data-format="team"] .workspace{grid-template-columns:180px minmax(650px,1fr)}}

@@ -21,7 +21,7 @@ export function createServer({rooms=new Map(),dataDirectory=new URL('./data/deck
    if(req.headers.origin&&new URL(req.headers.origin).host!==req.headers.host)return send(403,{error:'この接続元からは操作できません。'});
    if(req.headers['sec-fetch-site']==='cross-site')return send(403,{error:'別のサイトからの操作はできません。'});
    res.setHeader('X-Robots-Tag','noindex, nofollow');
-   if(url.pathname==='/peer-info'&&req.method==='GET')return send(200,{app:'GCG TABLE',protocol:9});
+   if(url.pathname==='/peer-info'&&req.method==='GET')return send(200,{app:'GCG TABLE',protocol:10});
    if(url.pathname==='/api/local/discover'&&req.method==='GET'){if(!local)return send(403,{error:'自分のPCから検索してください。'});if(!network?.discover)return send(200,{rooms:[],warning:'起動.cmdから起動し、VPNを接続してください。'});if(!discovering)discovering=network.discover().finally(()=>discovering=null);return send(200,await discovering)}
    if(url.pathname==='/api/local/connections'&&req.method==='GET'){
     if(!local)return send(403,{error:'自分のPCから操作してください。'});
@@ -56,13 +56,13 @@ export function createServer({rooms=new Map(),dataDirectory=new URL('./data/deck
      for(const [k,r]of rooms)if(now-r.updated>86400000)rooms.delete(k);
      if(rooms.size>=200)return send(503,{error:'ルーム数が上限に達しました。'});
      if(a.mode==='vpn'&&!network)return send(400,{error:'起動.cmdからアプリを起動してください。'});
-     const r=room(a.name,a.bestOf??1);
+     const r=room(a.name,a.bestOf??1,a.format??'duel');
      const peer=a.mode==='vpn'?await network.open(a.interface):`http://127.0.0.1:${req.socket.localPort}`;
-     r.localOnly=a.mode==='solo';r.hostAddress=a.mode==='vpn'?new URL(peer).hostname:null;rooms.set(r.code,r);return send(200,{token:r.players[0].token,state:view(r,0),invite:invitation(peer,r.code)});
+     r.hostToken=r.players[0].token;r.localOnly=a.mode==='solo';r.hostAddress=a.mode==='vpn'?new URL(peer).hostname:null;rooms.set(r.code,r);return send(200,{token:r.players[0].token,state:view(r,0),invite:invitation(peer,r.code)});
     }
     const code=String(a.code||url.searchParams.get('code')||'').toUpperCase();const r=rooms.get(code);if(!r)return send(404,{error:'ルームがありません。番号をご確認ください。サーバー再起動後は作り直しが必要です。'});
     if(r.localOnly&&!local)return send(403,{error:'この部屋は一人で確認するための部屋です。'});
-    if(url.pathname==='/api/join'&&req.method==='POST'){join(r,a.name);return send(200,{token:r.players[1].token,state:view(r,1)})}
+    if(url.pathname==='/api/join'&&req.method==='POST'){join(r,a.name);return send(200,{token:r.players.at(-1).token,state:view(r,r.players.length-1)})}
     const token=req.headers.authorization?.replace(/^Bearer /,'');const i=seat(r,token);
     if(url.pathname==='/api/state'&&req.method==='GET'){
      if(url.searchParams.get('since')===String(r.revision)){res.writeHead(204,{'Cache-Control':'no-store'});return res.end()}
@@ -71,8 +71,8 @@ export function createServer({rooms=new Map(),dataDirectory=new URL('./data/deck
     if(url.pathname==='/api/action'&&req.method==='POST'){const state=act(r,i,a);return send(200,{state,...a.type==='search'?{cards:[...r.players[i].deck].sort((a,b)=>a.name.localeCompare(b.name))}:{}})}
     return send(404,{error:'操作が見つかりません。'});
    }
-   if(!local){res.writeHead(403,{'Content-Type':'text/plain; charset=utf-8'});return res.end('GCG TABLE 04.7.2：自分のPCで「起動.cmd」を実行し、「部屋に入る」にホストからの招待情報を貼り付けてください。')}
-   const files={'/favicon.svg':'favicon.svg','/deck-curve.js':'deck-curve.js','/room-browser.js':'room-browser.js','/card-tags.js':'card-tags.js','/token-picker.js':'token-picker.js','/tokens.json':'tokens.json','/unit-state.js':'unit-state.js','/table-interaction.js':'table-interaction.js','/table-tools.js':'table-tools.js','/card-stats.js':'card-stats.js','/match-ui.js':'match-ui.js','/invitation.js':'invitation.js','/local-library.js':'local-library.js','/card-traits.js':'card-traits.js','/decks':'decks.html','/decks.js':'decks.js','/deck-store.js':'deck-store.js','/decks.css':'decks.css','/':'index.html','/app.js':'app.js','/style.css':'style.css','/catalog.json':'catalog.json','/sample-deck.txt':'sample-deck.txt','/card-back.svg':'card-back.svg','/resource-back.svg':'resource-back.svg'};const file=files[url.pathname];if(!file){res.writeHead(404);return res.end('Not found')}
+   if(!local){res.writeHead(403,{'Content-Type':'text/plain; charset=utf-8'});return res.end('GCG TABLE 04.8.1：自分のPCで「起動.cmd」を実行し、「部屋に入る」にホストからの招待情報を貼り付けてください。')}
+   const files={'/card-sets.js':'card-sets.js','/team-ui.js':'team-ui.js','/favicon.svg':'favicon.svg','/deck-curve.js':'deck-curve.js','/room-browser.js':'room-browser.js','/card-tags.js':'card-tags.js','/token-picker.js':'token-picker.js','/tokens.json':'tokens.json','/unit-state.js':'unit-state.js','/table-interaction.js':'table-interaction.js','/table-tools.js':'table-tools.js','/card-stats.js':'card-stats.js','/match-ui.js':'match-ui.js','/invitation.js':'invitation.js','/local-library.js':'local-library.js','/card-traits.js':'card-traits.js','/decks':'decks.html','/decks.js':'decks.js','/deck-store.js':'deck-store.js','/decks.css':'decks.css','/':'index.html','/app.js':'app.js','/style.css':'style.css','/catalog.json':'catalog.json','/sample-deck.txt':'sample-deck.txt','/card-back.svg':'card-back.svg','/resource-back.svg':'resource-back.svg'};const file=files[url.pathname];if(!file){res.writeHead(404);return res.end('Not found')}
    const data=await readFile(path.join(root,file));res.writeHead(200,{'Content-Type':file.endsWith('.svg')?'image/svg+xml':file.endsWith('.js')?'text/javascript; charset=utf-8':file.endsWith('.css')?'text/css; charset=utf-8':file.endsWith('.json')?'application/json; charset=utf-8':file.endsWith('.txt')?'text/plain; charset=utf-8':'text/html; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'self'; base-uri 'none'"});res.end(data);
   }catch(e){send(400,{error:e instanceof SyntaxError?'入力を読み取れませんでした。':e.message})}
  });

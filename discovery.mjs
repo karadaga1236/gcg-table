@@ -1,7 +1,7 @@
 import dgram from 'node:dgram';
 import {randomBytes} from 'node:crypto';
 import {peerAddress} from './peer.mjs';
-export const DISCOVERY_PORT=8789,DISCOVERY_GROUP='239.255.71.67',DISCOVERY_PROTOCOL=9;
+export const DISCOVERY_PORT=8789,DISCOVERY_GROUP='239.255.71.67',DISCOVERY_PROTOCOL=10;
 const ip=n=>n.split('.').reduce((v,b)=>(v<<8)|Number(b),0)>>>0;
 function mask(n){return n.netmask||(/^(25|26|127)\./.test(n.address)?'255.0.0.0':'255.255.255.0')}
 export function sameNetwork(address,n){return (ip(address)&ip(mask(n)))===(ip(n.address)&ip(mask(n)))}
@@ -17,7 +17,7 @@ export function discoveryService({rooms,port=DISCOVERY_PORT,targets,waitMs=1400}
    s.on('message',(bytes,remote)=>{const query=decode(bytes);if(query?.app!=='GCG TABLE'||query.kind!=='find'||query.protocol!==DISCOVERY_PROTOCOL||!/^\w{24}$/.test(query.nonce||''))return;
     const eligible=[...hosts.values()].filter(h=>sameNetwork(remote.address,h));if(!eligible.length)return;
     const key=remote.address+':'+remote.port,now=Date.now();if(now-(throttle.get(key)||0)<250)return;throttle.set(key,now);if(throttle.size>100)throttle.delete(throttle.keys().next().value);
-    const result=[];for(const h of eligible)for(const r of rooms.values())if(r.listed!==false&&!r.localOnly&&r.stage==='lobby'&&r.players.length===1&&r.hostAddress===h.address&&now-r.updated<86400000)result.push({code:r.code,name:r.players[0].name,bestOf:r.bestOf,port:new URL(h.peer).port});
+    const result=[];for(const h of eligible)for(const r of rooms.values())if(r.listed!==false&&!r.localOnly&&r.stage==='lobby'&&r.players.length<(r.format==='team'?4:2)&&r.hostAddress===h.address&&now-r.updated<86400000)result.push({code:r.code,name:r.players.find(p=>p.token===r.hostToken)?.name||r.players[0].name,format:r.format||'duel',players:r.players.length,capacity:r.format==='team'?4:2,bestOf:r.bestOf,port:new URL(h.peer).port});
     if(result.length)s.send(Buffer.from(JSON.stringify({app:'GCG TABLE',kind:'rooms',protocol:DISCOVERY_PROTOCOL,nonce:query.nonce,rooms:result.slice(0,20)})),remote.port,remote.address,()=>{});
    });
   });return starting;
@@ -32,7 +32,7 @@ export function discoveryService({rooms,port=DISCOVERY_PORT,targets,waitMs=1400}
     const finish=()=>{if(ended)return;ended=true;try{s.close()}catch{}resolve()};const timer=setTimeout(finish,waitMs);
     s.on('error',()=>{errors.push(n.name);clearTimeout(timer);finish()});
     s.on('message',(bytes,remote)=>{const reply=decode(bytes);if(reply?.app!=='GCG TABLE'||reply.kind!=='rooms'||reply.protocol!==DISCOVERY_PROTOCOL||reply.nonce!==nonce||!Array.isArray(reply.rooms)||!sameNetwork(remote.address,n))return;
-     for(const r of reply.rooms.slice(0,20)){if(!/^[A-F0-9]{12}$/.test(r.code)||typeof r.name!=='string'||r.name.length>24||![1,3].includes(r.bestOf)||!/^\d{4,5}$/.test(String(r.port)))continue;try{const peer=peerAddress(remote.address+':'+r.port);found.set(peer+'/'+r.code,{peer,code:r.code,name:r.name,bestOf:r.bestOf})}catch{}}
+     for(const r of reply.rooms.slice(0,20)){if(!/^[A-F0-9]{12}$/.test(r.code)||typeof r.name!=='string'||r.name.length>24||![1,3].includes(r.bestOf)||!/^\d{4,5}$/.test(String(r.port)))continue;try{const peer=peerAddress(remote.address+':'+r.port);found.set(peer+'/'+r.code,{peer,code:r.code,name:r.name,bestOf:r.bestOf,format:r.format==='team'?'team':'duel',players:r.players,capacity:r.capacity})}catch{}}
     });
     s.bind(0,n.address,()=>{s.setBroadcast(true);try{s.setMulticastInterface(n.address);s.setMulticastTTL(1)}catch{}const bytes=Buffer.from(JSON.stringify({app:'GCG TABLE',kind:'find',protocol:DISCOVERY_PROTOCOL,nonce}));for(const target of targets||[DISCOVERY_GROUP,dotted(broadcast(n)),'255.255.255.255'])s.send(bytes,port,target,()=>{})});
    })));
